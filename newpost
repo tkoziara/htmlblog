@@ -1,0 +1,86 @@
+#!/opt/local/bin/python
+from tempfile import mkstemp
+from shutil import move, copy
+from os import fdopen, remove, listdir, mkdir
+from os.path import isdir, isfile, join
+from datetime import datetime
+from sys import exit
+
+# --- sources ---
+
+# https://stackoverflow.com/questions/39086/search-and-replace-a-line-in-a-file-in-python
+# https://stackoverflow.com/questions/3207219/how-do-i-list-all-files-of-a-directory
+# https://stackoverflow.com/questions/3368969/find-string-between-two-substrings
+
+# --- routines ---
+
+def replace(file_path, pattern, subst):
+  # create temp file
+  fh, abs_path = mkstemp()
+  with fdopen(fh,'w') as new_file:
+    with open(file_path) as old_file:
+      for line in old_file:
+        new_file.write(line.replace(pattern, subst))
+  # remove original file
+  remove(file_path)
+  # move new file
+  move(abs_path, file_path)
+
+def postdate(post_path):
+  with open(post_path) as postfile:
+    for line in postfile:
+      if '<h5>' in line:
+	return line[line.index('<h5>')+4:line.rindex('</h5>')]
+
+# --- main ---
+
+enmonth = ["0", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+plmonth = ["0", "Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paz", "Lis", "Gru"]
+now = datetime.now() # now.year, now.month, now.day, now.hour, now.minute, now.second
+endir = 'en/' + str(now.year)
+pldir = 'pl/' + str(now.year)
+if isdir(endir):
+  posts = [f for f in listdir(endir) if isfile(join(endir, f))]
+  nextnum = len(posts)
+else:
+  mkdir (endir)
+  mkdir (pldir)
+  nextnum = 0
+
+newpost = 'post-' + str(now.year) + '-%d.html' % nextnum
+
+with open('en/index.html') as enindex:
+  for line in enindex:
+    if ('post-' in line):
+      lastpost = line[line.index('"')+1:line.rindex('"')]
+      lastnum = int(line[line.rindex('-')+1:line.rindex('.')])
+      break
+
+if not isdir('workspace'): mkdir ('workspace')
+if not isdir('workspace/en'): mkdir ('workspace/en')
+if not isdir('workspace/pl'): mkdir ('workspace/pl')
+
+enpath = 'workspace/en/' + newpost
+plpath = 'workspace/pl/' + newpost
+endate0 = postdate('en/' + lastpost)
+pldate0 = postdate('pl/' + lastpost)
+endate = enmonth[now.month] + ' %d, %d' % (now.day, now.year)
+pldate = plmonth[now.month] + ' %d, %d' % (now.day, now.year)
+
+if not isfile(enpath):
+  print('creating ' + enpath)
+  copy ('en/' + lastpost, enpath)
+  replace(enpath,'id="%d"'%lastnum, 'id="%d"'%nextnum)
+  replace(enpath,'href="#%d"'%lastnum, 'href="#%d"'%nextnum)
+  replace(enpath, endate0, endate)
+else:
+  print(enpath + ' exists!')
+
+if not isfile(plpath):
+  print('creating ' + plpath)
+  copy ('pl/' + lastpost, plpath)
+  replace(plpath,'id="%d"'%lastnum, 'id="%d"'%nextnum)
+  replace(plpath,'href="#%d"'%lastnum, 'href="#%d"'%nextnum)
+  replace(plpath, pldate0, pldate)
+else:
+  print(plpath + ' exists!')

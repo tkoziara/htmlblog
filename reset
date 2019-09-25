@@ -1,0 +1,25 @@
+#!/bin/sh
+# https://stackoverflow.com/questions/13716658/how-to-delete-all-commit-history-in-github
+
+# Create zip archive
+cd ..
+zip -r htmlblog htmlblog
+cd htmlblog
+
+# Checkout temporary branch
+git checkout --orphan temp_branch
+
+# Add all the files
+git add -A
+
+# Commit the changes
+git commit -am "page reset"
+
+# Delete the branch
+git branch -D gh-pages
+
+# Rename the current branch
+git branch -m gh-pages
+
+# Finally, update repository
+git push -f --set-upstream origin gh-pages

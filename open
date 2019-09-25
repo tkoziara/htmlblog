@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ $# -eq 0 ]; then
+echo "Non number passed"
+exit 0
+else
+n=$(($1 + 1))
+fi
+
+year=`date +'%Y'`
+en=`ls -t en/$year | sort -V | head -$n | tail -1`
+pl=`ls -t pl/$year | sort -V | head -$n | tail -1`
+vim -o en/$year/$en pl/$year/$pl

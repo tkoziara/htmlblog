@@ -1,0 +1,9 @@
+<script>
+var langCode = navigator.language || navigator.systemLanguage;
+var lang = langCode.toLowerCase(); 
+lang = lang.substr(0,2); 
+var dest = window.location.href; 
+if (lang == 'pl') dest = dest.substr(0,dest.lastIndexOf('/')) + '/pl' + dest.substr(dest.lastIndexOf('/')); 
+else dest = dest.substr(0,dest.lastIndexOf('/')) + '/en' + dest.substr(dest.lastIndexOf('/')); 
+window.location.replace ?window.location.replace(dest) :window.location=dest;
+</script>

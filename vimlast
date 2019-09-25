@@ -1,0 +1,18 @@
+#!/bin/sh
+
+if [ $# -eq 0 ]; then
+n=-1
+else
+n=$1
+fi
+
+if [ -d "workspace" ]; then
+en=`ls -t workspace/en | sort -V | tail $n | head -1`
+pl=`ls -t workspace/pl | sort -V | tail $n | head -1`
+vim -o  workspace/en/$en workspace/pl/$pl
+else
+year=`date +'%Y'`
+en=`ls -t en/$year | sort -V | tail $n | head -1`
+pl=`ls -t pl/$year | sort -V | tail $n | head -1`
+vim -o  en/$year/$en pl/$year/$pl
+fi

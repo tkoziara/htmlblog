@@ -1,0 +1,106 @@
+#!/opt/local/bin/python
+from tempfile import mkstemp
+from shutil import move, copyfile
+from os import fdopen, remove, listdir, mkdir
+from os.path import isdir, isfile, join
+from datetime import datetime
+from sys import exit
+
+# --- sources ---
+
+# https://stackoverflow.com/questions/39086/search-and-replace-a-line-in-a-file-in-python
+# https://stackoverflow.com/questions/3207219/how-do-i-list-all-files-of-a-directory
+# https://stackoverflow.com/questions/3368969/find-string-between-two-substrings
+
+# --- routines ---
+
+def replace(file_path, pattern, subst, append = False, maxpost=1000000):
+  # create temp file
+  fh, abs_path = mkstemp()
+  with fdopen(fh,'w') as new_file:
+    with open(file_path) as old_file:
+      npost = 0
+      for line in old_file:
+	if pattern in line and append:
+	  new_line = line.replace(pattern, subst)
+	  if 'post-' in new_line:
+	    npost += 1
+	    if npost <= maxpost:
+	      new_file.write(new_line)
+	  else: new_file.write(new_line)
+	  if pattern != subst:
+	    if 'post-' in line:
+	      npost += 1
+	      if npost <= maxpost:
+		new_file.write(line)
+	    else: new_file.write(line)
+	elif 'post-' in line:
+	  npost += 1
+	  if npost <= maxpost:
+	    new_file.write(line)
+	  else: continue
+	else: new_file.write(line.replace(pattern, subst))
+  # remove original file
+  remove(file_path)
+  # move new file
+  move(abs_path, file_path)
+
+# --- main ---
+
+now = datetime.now() # now.year, now.month, now.day, now.hour, now.minute, now.second
+endir = 'en/' + str(now.year)
+pldir = 'pl/' + str(now.year)
+if not isdir(endir): mkdir (endir)
+if not isdir(pldir): mkdir (pldir)
+
+if not isdir('workspace/en'):
+  print('Nothing to add:)')
+  exit(1)
+
+posts = [f for f in listdir('workspace/en') if isfile(join('workspace/en', f))]
+posts = [f for f in posts if not f.startswith('.')] # filter out temporary files
+if len(posts) == 0:
+  print('no drafts!')
+  exit(0)
+if len(posts) > 1:
+  print('multiple drafts!')
+posts.sort()
+newpost = posts[0]
+print('adding ' + newpost)
+yeardir = str(now.year)+'/'
+
+with open('en/index.html') as enindex:
+  for line in enindex:
+    if ('post-' in line):
+      lastpost = line[line.index('"')+1:line.rindex('"')]
+      lastyear = lastpost[0:lastpost.rindex('/')]
+      break
+
+enpath = 'workspace/en/' + newpost
+plpath = 'workspace/pl/' + newpost
+
+if isfile(enpath):
+  copyfile (enpath, join(endir, newpost))
+  replace ('en/index.html', lastpost, yeardir+newpost, append=True, maxpost=2)
+  if isfile(endir+'.html'):
+    replace (endir+'.html', lastpost, yeardir+newpost, append=True)
+  else:
+    copyfile ('en/'+lastyear+'.html', endir+'.html')
+    replace (endir+'.html', lastpost, yeardir+newpost, maxpost=1)
+    replace (endir+'.html', lastyear, str(now.year))
+    line0 = '<a class="btn btn-link" href="%s.html">%s</a>'%(lastyear,lastyear)
+    line1 = '<a class="btn btn-link" href="%d.html">%d</a>'%(now.year,now.year)
+    replace ('en/rightcol.html', line0, line1, append=True)
+
+if isfile(plpath):
+  copyfile (plpath, join(pldir, newpost))
+  replace ('pl/index.html', lastpost, yeardir+newpost, append=True, maxpost=2)
+  if isfile(pldir+'.html'):
+    replace (pldir+'.html', lastpost, yeardir+newpost, append=True)
+  else:
+    copyfile ('pl/'+lastyear+'.html', pldir+'.html')
+    replace (pldir+'.html', lastpost, yeardir+newpost, maxpost=1)
+    replace (pldir+'.html', lastyear, str(now.year))
+    line0 = '<a class="btn btn-link" href="%s.html">%s</a>'%(lastyear,lastyear)
+    line1 = '<a class="btn btn-link" href="%d.html">%d</a>'%(now.year,now.year)
+    replace ('pl/rightcol.html', line0, line1, append=True)
